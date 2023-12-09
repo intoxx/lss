@@ -22,6 +22,8 @@
                                                   ;; Generate the style
                                                   (gen-style (read-delimited-list #\) stream)))
                                               nil)
+                         ;; FIXME: check we're in an spinneret block
+                         #+spinneret
                          :style)
                      nil)
 

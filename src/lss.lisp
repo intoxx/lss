@@ -50,7 +50,7 @@ translation into PROPERTY-ALIAS.")
 
 (defun style (&rest args)
   "Return a STRING containing the compiled CSS declarations, args must be a valid PROPERTY-LIST."
-  (let ((plist (apply #'make-property-list args)))
+  (let ((plist (apply #'make-property-list (first args)))) ; FIXME: I've added (first args) to make it work with the macro character
     (apply #'compile-declarations
            (loop :for arg in plist
                  :when (keywordp arg)
@@ -65,3 +65,25 @@ translation into PROPERTY-ALIAS.")
 (defun compile-declarations (&rest declarations)
   "Return a STRING containing the inlined CSS for all DECLARATIONS."
   (format nil "~{~{~A: ~A~};~^ ~}" declarations))
+
+
+(defvar *default-readtable* (copy-readtable))
+
+(set-macro-character #\@
+                     #'(lambda (stream char)
+                         (declare (ignore char))
+                         (setf *default-readtable* (copy-readtable))
+                         (set-macro-character #\(
+                                              #'(lambda (stream char)
+                                                  (declare (ignore char))
+                                                  ;; Don't keep this macro character after using it
+                                                  (setf *readtable* *default-readtable*)
+                                                  ;; Generate the style
+                                                  ;; FIXME: style has been updated with (first args) to make it work
+                                                  (style (read-delimited-list #\) stream)))
+                                              nil)
+                         ;; FIXME: check we're in an spinneret block
+                         ;; FIXME: when spinneret isn't loaded it returns T
+                         #+spinneret
+                         :style)
+                     nil)
