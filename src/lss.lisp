@@ -2,9 +2,17 @@
 
 (uiop:define-package #:lss
   (:use #:cl)
-  (:export #:style #:defproperties #:defproperty))
+  (:export #:style
+           #:defproperty
+           #:defproperties
+           #:*property-aliases*
+           #:*associations*))
 
 (in-package #:lss)
+
+(defmacro defproperty (alias &optional (value "auto"))
+  "Return a new LIST containing an association between an ALIAS and its VALUE (defaults to 'auto')."
+  `(list ,alias ,value))
 
 (defmacro defproperties (&rest associations)
   "Return a new ALIST of ALIAS and its VALUE."
@@ -15,10 +23,6 @@
                        results)
           :finally (pushnew 'list results))
     results))
-
-(defmacro defproperty (alias &optional (value "auto"))
-  "Return a new LIST containing an association between an ALIAS and its VALUE (defaults to 'auto')."
-  `(list ,alias ,value))
 
 (defvar *property-aliases* (defproperties (:dp "display")
                                           (:m "margin")
@@ -31,7 +35,7 @@
   "ALIST of supported CSS PROPERTY-ALIAS where the CAR is the PROPERTY-ALIAS and the CDR its translation.")
 
 (defparameter *associations* '((:flex (:dp "flex")) (:ml-auto (:ml "auto"))
-                               (:mx-auto (:ml "auto" :mr "auto"))
+                               (:mx-auto (:ml "auto" :mr "auto")) ; FIXME: sequential let to reference ml-auto ?
                                (:list-none (:list-style "none")))
   "ALIST of supported LSS SUPER-PROPERTY-ALIAS where the CAR is the SUPER-PROPERTY-ALIAS and the CDR its
 translation into PROPERTY-ALIAS.")
