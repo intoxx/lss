@@ -44,7 +44,7 @@
 
 ;; Let the system decides what to use.
 ;; It requires a configuration to output the css (either as <style> tags or files).
-(:h1 @(:size "x-large" :p "3px"] "Welcome")
+(:h1 @(:size "x-large" :p "3px") "Welcome")
 
 ;; Define local styles
 (with-style ((title @(:flex :mx-auto :p "3px"))
@@ -75,3 +75,50 @@
     (title)))
 
 ;; defpage, defragment
+
+;; Notes about bi-directional communication between macros
+
+(defmacro expand (form &environment env)
+  (multiple-value-bind (expansion expandedp)
+      (macroexpand form env)
+    `(values ',expansion ',expandedp)))
+
+(defmacro current-scope () :global)
+(defmacro query-scope (&environment env) (macroexpand '(current-scope) env))
+(macrolet ((current-scope () :local))
+  (query-scope))
+
+;; (macrolet ((outer () :outer))
+;;   (outer))
+
+(defmacro outer (&body body &environment env)
+  (macroexpand '(inner) env))
+(defmacro inner (&environment env)
+  (print env)
+  (print (sb-c::lexenv-p env))
+  (print (sb-c::make-lexenv :default env)) ; copy the env (we could edit it!)
+  (print (type-of env))
+  (print (sb-c::lexenv-vars env))
+  (print (environment-variables env))
+  (if env
+      :inner-env
+      :inner))
+
+;; This will collect all &environment variables
+(defun environment-variables (env)
+  (remove-duplicates
+   (mapcar #'car
+           (remove-if-not #'(lambda (x) (typep x 'sb-c::lambda-var))
+                          (sb-c::lexenv-vars env)
+                          :key #'cdr))))
+;; Use like this to print all variables present in an env
+(let ((x 3))
+  (declare (ignore x))
+  (inner))
+
+(defun environment-functions (env)
+  (remove-duplicates (mapcar #'car (sb-c::lexenv-funs env))))
+
+;; FIXME: how to do bi-directional communication between macros with
+;; - &environment and macroexpand without editing sbcl internal lexenv ?
+;; - &environment and editing sbcl internal lexenv ?
